@@ -1,0 +1,194 @@
+---
+title: "Analysis"
+author: "Maxwel Coura Oliveira"
+date: "7/9/2020"
+output: html_document
+---
+
+```{r echo=TRUE, message=FALSE}
+library(tidyverse)
+library(glmmTMB)
+library(lme4)
+library(lmerTest)
+library(emmeans)
+library(car)
+library(skimr)
+library(pbkrtest)
+library(moderndive)
+library(purrr)
+library(multcomp)
+library(broom.mixed)
+```
+
+
+```{r include = FALSE}
+devtools::install_github("glmmTMB/glmmTMB/glmmTMB")
+```
+
+
+
+```{r echo=TRUE, message=FALSE}
+dat <- read_csv("control.csv") %>%  # Enter the data
+  mutate(control = control/100) %>% 
+  mutate_if(is.character, as.factor) %>% 
+  mutate(GPA = as.factor(GPA)) %>% 
+  mutate(siteyr = str_c(Location, Year, sep = "-", collapse = NULL)) %>% 
+  filter(Herbicide != "Check") %>% 
+  mutate(control = ifelse(control == "0", 0.01, control)) 
+```
+
+
+
+
+```{r}
+skim(dat)
+```
+
+
+
+
+# Separate by location
+
+```{r}
+dat %>% 
+  mutate(GPA = as_factor(GPA)) %>% 
+  filter(Herbicide != "Check") %>% 
+  ggplot() + aes(x=Herbicide, y=densitym, fill=species) + geom_bar(stat="identity", position = "fill") + #geom_jitter(alpha=0.2) + 
+#  scale_fill_brewer(palette = "Reds") +
+  facet_wrap(~siteyr, ncol=6) + coord_flip() +
+  ggsave("weeds.png", height = 8, width=10)
+```
+
+
+```{r warning=FALSE}
+dat %>% 
+  group_by(crop, Location, Year, Plot, Herbicide, GPA) %>%
+  summarise(control = mean(control),
+            density= mean(densitym)) %>%
+  mutate(GPA = as.factor(GPA)) %>%
+  mutate(siteyr = str_c(Location, Year, sep = "-", collapse = NULL)) %>% 
+  filter(Herbicide != "Check") %>% 
+  
+  
+ggplot() + aes(x=GPA, y=control*100, color=siteyr) + geom_boxplot() + geom_jitter(alpha=0.2) + coord_flip() +
+  facet_wrap(crop ~ Herbicide)
+```
+
+
+# Control (%) analyses
+
+
+```{r}
+cc <- dat %>% 
+  filter(crop == "corn" & species == "common ragweed") 
+
+
+m <- glmmTMB(control ~ Herbicide * factor(GPA) + (1|Plot) + (1|siteyr), beta_family(link = "logit"), data=cc)
+glmmTMB:::Anova.glmmTMB(m)
+```
+
+
+```{r}
+# Nesting data
+nested_data <- dat %>% 
+  group_by(crop, species, Location) %>%
+  na.omit() %>% 
+  filter(species == "common ragweed" | species == "grass" | species == "giant ragweed") %>% 
+  nest() %>% 
+  arrange(crop, species)
+nested_data
+```
+
+```{r}
+# Fitting linear models
+nested_models <- nested_data %>% 
+  mutate(model = map(data, ~ glmmTMB(control ~ Herbicide * GPA + (1|Plot), beta_family(link = "logit"), data=.x))) 
+nested_models
+```
+
+
+
+```{r}
+# Display estimated parameters, associated statistics, confidence intervals
+nested_models %>% 
+  mutate(coefs = map(model, glmmTMB:::Anova.glmmTMB)) %>% 
+  unnest(coefs) %>% 
+  arrange(species)
+```
+
+```{r}
+#nested_models$crop[[2]]
+nested_models$model[[4]] %>% 
+#  emmip(~ GPA |Herbicide) 
+  emmeans(~  GPA, type="response") %>% 
+  cld(Letters=letters, adjust="none", reversed = TRUE)
+```
+
+
+```{r}
+# Extracting R squared statistic for each model
+nested_models %>% 
+  mutate(metrics = map(model, glance)) %>% 
+  unnest(metrics) 
+```
+
+
+
+
+# Weed Biomass
+
+## Corn
+
+```{r include=FALSE}
+biomass <- read_csv("biomass.csv") %>% 
+  mutate(GPA = as.factor(GPA))
+```
+
+```{r}
+biomass <- biomass %>% 
+  mutate(biomred = 
+     ifelse(crop == "corn" & Location == "Arlington" & Year == "2018", (418.8 - Biomass)/418.8, 
+     ifelse(crop == "corn" & Location == "Arlington" & Year == "2019", (30.38115	 - Biomass)/30.38115,
+     ifelse(crop == "corn" & Location == "Janesville" & Year == "2018", (539.2 - Biomass)/539.2,
+     ifelse(crop == "soybean" & Location == "Arlington" & Year == "2018", (108.8 - Biomass)/108.8, 
+     ifelse(crop == "soybean" & Location == "Arlington" & Year == "2019", (101.12	 - Biomass)/101.12,
+     ifelse(crop == "soybean" & Location == "Janesville" & Year == "2018", (316.8	 - Biomass)/316.8, NA))))))) %>% 
+  mutate(biomred = ifelse(biomred < 0, 0.001, 
+                    ifelse(biomred >= 0.99, 0.999, biomred))) %>% 
+  filter(Herbicide != "Check") 
+
+```
+
+```{r}
+# Nesting data
+nested_data <- biomass %>% 
+  group_by(crop, Location) %>%
+  nest() %>% 
+  arrange(crop, Location)
+nested_data
+```
+
+
+```{r}
+# Fitting linear models
+nested_models <- nested_data %>% 
+  mutate(model = map(data, ~ glmmTMB(biomred ~ Herbicide * GPA + (1|Plot), beta_family(link = "logit"), data=.x))) 
+nested_models
+```
+
+
+```{r}
+# Display estimated parameters, associated statistics, confidence intervals
+nested_models %>% 
+  mutate(coefs = map(model, glmmTMB:::Anova.glmmTMB)) %>% 
+  unnest(coefs) 
+```
+
+
+```{r}
+#nested_models$crop[[2]]
+nested_models$model[[4]] %>% 
+#  emmip(~ GPA |Herbicide) 
+  emmeans(~ GPA, type="response") %>% 
+  cld(Letters=letters, adjust="none", reversed = TRUE)
+```
