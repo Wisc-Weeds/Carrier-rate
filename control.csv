@@ -95,10 +95,10 @@ corn,Janesville,2018,116,16,Check,0,0,pigweed,0,1,0
 corn,Janesville,2018,206,16,Check,0,0,pigweed,1,8,0
 corn,Janesville,2018,312,16,Check,0,0,pigweed,0,1,0
 corn,Janesville,2018,403,16,Check,0,0,pigweed,1,8,0
-corn,Arlington,2019,106,6,Acuron Flexi,2.25,2.5,common ragweed,0,1,0
-corn,Arlington,2019,202,6,Acuron Flexi,2.25,2.5,common ragweed,0,1,0
-corn,Arlington,2019,311,6,Acuron Flexi,2.25,2.5,common ragweed,0,1,0
-corn,Arlington,2019,405,6,Acuron Flexi,2.25,2.5,common ragweed,0,1,0
+corn,Arlington,2019,106,6,Acuron Flexi,2.25,2.5,common ragweed,0,1,90
+corn,Arlington,2019,202,6,Acuron Flexi,2.25,2.5,common ragweed,0,1,95
+corn,Arlington,2019,311,6,Acuron Flexi,2.25,2.5,common ragweed,0,1,90
+corn,Arlington,2019,405,6,Acuron Flexi,2.25,2.5,common ragweed,0,1,95
 corn,Arlington,2019,116,16,Check,0,0,velvetleaf,3,16.1,0
 corn,Arlington,2019,204,16,Check,0,0,velvetleaf,1,5.4,0
 corn,Arlington,2019,312,16,Check,0,0,velvetleaf,6,32.3,0
