@@ -116,11 +116,14 @@ nested_models %>%
   arrange(species)
 ```
 
+
+
+
 ```{r}
 #nested_models$crop[[2]]
 nested_models$model[[4]] %>% 
 #  emmip(~ GPA |Herbicide) 
-  emmeans(~  GPA, type="response") %>% 
+  emmeans(~  Herbicide, type="response") %>% 
   cld(Letters=letters, adjust="none", reversed = TRUE)
 ```
 
