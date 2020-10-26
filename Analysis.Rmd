@@ -22,7 +22,7 @@ library(broom.mixed)
 
 
 ```{r include = FALSE}
-devtools::install_github("glmmTMB/glmmTMB/glmmTMB")
+devtools::install_github("glmmTMB")
 ```
 
 
