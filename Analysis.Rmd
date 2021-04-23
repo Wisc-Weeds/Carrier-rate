@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r}
-#sarah editing
+#sarah editing 
 ```
 
 ```{r include = FALSE}
