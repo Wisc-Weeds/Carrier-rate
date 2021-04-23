@@ -9,6 +9,10 @@ output: html_document
 #sarah editing
 ```
 
+```{r include = FALSE}
+#devtools::install_github("glmmTMB")
+```
+
 
 ```{r echo=TRUE, message=FALSE}
 library(tidyverse)
@@ -23,12 +27,10 @@ library(moderndive)
 library(purrr)
 library(multcomp)
 library(broom.mixed)
+library(glmmTMB)
 ```
 
 
-```{r include = FALSE}
-devtools::install_github("glmmTMB")
-```
 
 
 
@@ -115,10 +117,12 @@ nested_models
 
 ```{r}
 # Display estimated parameters, associated statistics, confidence intervals
+options(scipen=999)
 nested_models %>% 
   mutate(coefs = map(model, glmmTMB:::Anova.glmmTMB)) %>% 
   unnest(coefs) %>% 
-  arrange(species)
+  arrange(species) %>% 
+  mutate(`Pr(>Chisq)` = round(`Pr(>Chisq)`, 3))
 ```
 
 
@@ -128,9 +132,53 @@ nested_models %>%
 #nested_models$crop[[2]]
 nested_models$model[[4]] %>% 
 #  emmip(~ GPA |Herbicide) 
-  emmeans(~  Herbicide, type="response") %>% 
-  cld(Letters=letters, adjust="none", reversed = TRUE)
+  emmeans(~   Herbicide | GPA, type="response") %>% 
+  cld(Letters=letters, adjust="none", reversed = TRUE) %>% 
+  as_tibble() -> grass_cn_j
 ```
+
+
+```{r}
+library(ggtext)
+```
+
+
+```{r}
+grass_cn_j %>% 
+  mutate(gpa_1 = as.character(GPA)) %>% 
+  mutate(gpa_1 = glue::glue("{gpa_1} GPA")) %>% 
+  mutate(gpa_1 = fct_relevel(gpa_1, levels = 
+                               c("2.5 GPA", "5 GPA",
+                                 "10 GPA", "15 GPA",
+                                 "17.5 GPA"))) %>% 
+  ggplot(aes(x = Herbicide, y = response, 
+             label = .group, color = Herbicide)) +
+  geom_point() +
+  geom_linerange(aes(ymin = lower.CL, ymax = upper.CL)) +
+  facet_grid(~ gpa_1) +
+  coord_flip() +
+  labs(y = "Grass control (%)",
+       x = "") +
+  geom_text(nudge_y = 0, nudge_x = 0.2) +
+  scale_y_continuous(limits = c(00.5, 1.05), breaks = c( 0.5, 0.75, 1),
+                     labels = scales::percent_format(scale = 100, 
+                                                     suffix = "")) +
+  theme_test() +
+  theme(legend.position = "none",
+        strip.background = element_blank(),
+        strip.text = element_textbox(
+          size = 12, color = "white", fill = "#282728", 
+          box.color = "#282728", halign = 0.5, linetype = 1, 
+          r = unit(5, "pt"), width = unit(1, "npc"),
+          padding = margin(2, 0, 1, 0), 
+          margin = margin(3, 3, 3, 3))) +
+  ggsave("grass_weeds.pdf", width = 7, device = cairo_pdf,
+       height = 3)
+```
+
+
+
+
 
 
 ```{r}
