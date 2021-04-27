@@ -179,11 +179,11 @@ density_weed %>%
         strip.background = element_blank(),
         strip.text = element_textbox(
           size = 13, face = "bold", color = "white", fill = "#282728", 
-          box.color = "#282728", halign = 0.5, linetype = 1, 
-          r = unit(5, "pt"), width = unit(1, "npc"),
-          padding = margin(2, 0, 1, 0), 
-          margin = margin(3, 3, 3, 3))) +
-  ggsave("weeds.png", height = 7, width = 7)
+          box.color = "#282728", linetype = 1, r = unit(0, "pt"), 
+          width = unit(1, "npc"),
+          padding = margin(2, 2, 2, 2), 
+          margin = margin(6, 1, 4, 1))) +
+  ggsave("weeds.png", height = 7, width = 7, dpi = 600)
 ```
 
 
@@ -252,7 +252,7 @@ nested_models %>%
 #nested_models$crop[[2]]
 nested_models$model[[4]] %>% 
 #  emmip(~ GPA |Herbicide) 
-  emmeans(~   Herbicide | GPA, type="response") %>% 
+  emmeans(~   GPA | Herbicide, type="response") %>% 
   cld(Letters=letters, adjust="none", reversed = TRUE) %>% 
   as_tibble() -> grass_cn_j
 ```
@@ -260,7 +260,6 @@ nested_models$model[[4]] %>%
 
 ```{r}
 library(ggtext)
-library(gg)
 ```
 
 
@@ -276,18 +275,28 @@ grass_cn_j %>%
                                 "bicyclopyrone + mesotrione + *S*-metolachlor" = "Acuron Flexi",
                                 "fluthiacet-methyl + pyroxasulfone" = "Anthem Maxx",
                                 "acetochlor + clopyralid + mesotrione" = "Resicore"))  %>% 
-  ggplot(aes(x = Herbicide, y = response, 
-             label = .group, color = Herbicide)) +
+  unite("trt", c("Herbicide", "gpa_1"), sep = " ", remove = FALSE) %>% 
+  ggplot(aes(x = GPA, y = response, 
+              color = GPA)) +
   coord_flip() +
-  geom_point(size=1) +
+  geom_jitter(data = dat %>% 
+                filter(species == "grass") %>% 
+                filter(crop == "corn" & Location == "Janesville") %>% 
+                rename(response = control) %>% 
+                mutate(Herbicide = fct_recode(Herbicide,
+                                "bicyclopyrone + mesotrione + *S*-metolachlor" = "Acuron Flexi",
+                                "fluthiacet-methyl + pyroxasulfone" = "Anthem Maxx",
+                                "acetochlor + clopyralid + mesotrione" = "Resicore")), 
+              alpha = 0.15)  + 
+  geom_point(size=2) +
   geom_linerange(aes(ymin = lower.CL, ymax = upper.CL),
                  size = 1) +
-  facet_grid(~ gpa_1) +
-  scale_color_brewer(palette = "Set1") +
+  facet_grid(~ Herbicide) +
+  scale_color_brewer(palette = "Dark2") +
   labs(y = "Grass control (%)",
-       x = "") +
-  geom_text(nudge_y = 0, nudge_x = 0.2) +
-  scale_y_continuous(limits = c(0.95, 1), breaks = c(0.96, 0.98, 1),
+       x = expression(paste("Carrier volume (gallons acre"^"-1",")"))) +
+  geom_text(aes(label = .group), nudge_y = 0.001, nudge_x = 0.3) +
+  scale_y_continuous(limits = c(0.94, 1), breaks = c(0.94, 0.96, 0.98, 1),
                      labels = scales::percent_format(scale = 100, 
                                                      accuracy = 1,
                                                      suffix = "")) +
@@ -296,19 +305,55 @@ grass_cn_j %>%
        text  = element_text(family = "Arial", color = "#282728"),
         axis.text.y = element_markdown(),
         strip.background = element_blank(),
+       strip.text = element_textbox_highlight(
+      size = 12, face = "bold",
+      fill = "#282728", box.color = "#282728", color = "#dadfe1",
+      halign = .5, linetype = 1, r = unit(0, "pt"), width = unit(1, "npc"),
+      padding = margin(2, 2, 2, 2), margin = margin(6, 1, 4, 1),
+      hi.labels = "acetochlor + clopyralid + mesotrione", hi.family = "Arial",
+      hi.fill = "#c5050c", hi.box.col = "#c5050c", hi.col = "white")
+    ) +
+  ggsave("grass_weeds.pdf", width = 9, #device = cairo_pdf,
+       height = 3, dpi = 600)
+```
+
+
+```{r}
+
+       
         strip.text = element_textbox(face = "bold",
           size = 13, color = "white", fill = "#282728", 
           box.color = "#282728", halign = 0.5, linetype = 1, 
           r = unit(5, "pt"), width = unit(1, "npc"),
-          padding = margin(2, 0, 1, 0), 
-          margin = margin(3, 3, 3, 3))) +
-  ggsave("grass_weeds.png", width = 8, #device = cairo_pdf,
-       height = 3)
+          padding = margin(6, 3, 3, 3), 
+          margin = margin(3, 3, 3, 3)))
 ```
 
 
+```{r}
+library(ggtext)
+library(rlang)
 
+element_textbox_highlight <- function(..., hi.labels = NULL, hi.fill = NULL,
+                                      hi.col = NULL, hi.box.col = NULL, hi.family = NULL) {
+  structure(
+    c(element_textbox(...),
+      list(hi.labels = hi.labels, hi.fill = hi.fill, hi.col = hi.col, hi.box.col = hi.box.col, hi.family = hi.family)
+    ),
+    class = c("element_textbox_highlight", "element_textbox", "element_text", "element")
+  )
+}
 
+element_grob.element_textbox_highlight <- function(element, label = "", ...) {
+  if (label %in% element$hi.labels) {
+    element$fill <- element$hi.fill %||% element$fill
+    element$colour <- element$hi.col %||% element$colour
+    element$box.colour <- element$hi.box.col %||% element$box.colour
+    element$family <- element$hi.family %||% element$family
+  }
+  NextMethod()
+}
+```
 
 
 ```{r}
