@@ -332,12 +332,7 @@ nested_models4 %>%
   mutate_at(c("lower.CL", "upper.CL"), as.double) -> all_data
 ```
 
-```{r}
 
-theme_style <- 
-
-theme_set(theme_style)
-```
 
 
 ```{r}
@@ -400,12 +395,12 @@ all_data1 %>%
   theme_test() +
   labs(y = "%",
        x = "",
-       title = "Figure 1. Efficacy (%) of preemergence herbicides in soybeans at Arlington and Janesville, WI",
-       subtitle = "Weed biomass reduction (%) and control (%) of common ragweed, giant ragweed and grass are pooled over carrier volume rate") +
+       title = "Figure 1. Efficacy (%) of preemergence herbicides in soybean at Arlington and Janesville, WI",
+       subtitle = "Weed biomass reduction (%) and control (%) of common ragweed, giant ragweed and grass are pooled over carrier volume rates") +
   coord_flip() +
   scale_color_brewer(palette = "Dark2") +
   theme(legend.position = "none",
-        plot.title = element_markdown(size = 12, hjust = 0.98),
+        plot.title = element_markdown(size = 12, hjust = 0.99),
         plot.subtitle = element_markdown(size = 8, hjust = 1),
         text  = element_text(family = "Arial", color = "#282728"),
         axis.text.y = element_markdown(),
