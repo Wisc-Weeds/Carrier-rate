@@ -161,7 +161,7 @@ density_weed %>%
   geom_text(data = ann_text8, label = expression('1.29 giant ragweed ft'^2),
             color = "#c5050c") +
   coord_flip() +
-  labs(
+  labs( 
       fill = "Weed species",
        y = "Weed density (%)",
        x = "") +
