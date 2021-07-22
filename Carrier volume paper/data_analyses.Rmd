@@ -5,9 +5,6 @@ date: "4/29/2021"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
 # Packages
 
@@ -63,7 +60,7 @@ nested_data
 
 ## Fitting the model
 
-```{r model-fit}
+```{r model-fit, warning = FALSE}
 # Fitting linear models
 nested_models <- nested_data %>% 
   mutate(model = map(data, ~ glmmTMB(control ~ Herbicide * GPA + (1|Plot), beta_family(link = "logit"), data=.x))) 
@@ -259,6 +256,14 @@ bio_models4 <- bio_models3 %>%
 # Figures
 
 
+```{r}
+library(extrafont)
+library(showtext)
+showtext_auto()
+font_add_google("Lato", "lato") 
+```
+
+
 
 ```{r}
 # a ggplot function
@@ -320,11 +325,11 @@ all_data %>%
                                levels = "common ragweed", "giant ragweed", "grass",
                                "Biomass reduction")) %>% 
   mutate(Herbicide = fct_recode(Herbicide,
-                                "metribuzin + chlorimuron-ethyl " = 
+                                "metribuzin +<br> chlorimuron-ethyl " = 
                                   "Canopy DF",
-                                "flumioxazin + pyroxasulfone" = 
+                                "flumioxazin +<br> pyroxasulfone" = 
                                   "Fierce",
-                                "dimethenamid-P + saflufenacil" = 
+                                "dimethenamid-P +<br> saflufenacil" = 
                                   "Verdict"))  %>% 
   filter(crop == "soybean") -> all_data1
 ```
@@ -332,69 +337,84 @@ all_data %>%
 ### Figure
 
 ```{r}
+facet_labeller_top1 <- function(variable, value) {
+  c(
+    "", 
+    "<b style='color:#9b0000; font-size:14pt;'>Arlington</b> <img src='https://img.icons8.com/color/48/000000/soy.png' width='12'/>",
+    "",
+    "", 
+    "<b style='color:#0479a8; font-size:14pt;'>Janesville</b> <img src='https://img.icons8.com/color/48/000000/soy.png'  width='12'/>",
+    ""
+  )
+}
+```
+
+
+```{r warning = FALSE}
 all_data1 %>% 
   ggplot(aes(x = fct_reorder(Herbicide, response), y = response, 
              color = Herbicide)) +
   geom_point(size = 2, show.legend = FALSE) +
   geom_linerange(aes(ymin = lower.CL, ymax = upper.CL)) +
   geom_text(aes(label = letters), nudge_y = 0.001, nudge_x = 0.3) +
-  facet_wrap(Location ~ species, drop	= TRUE, as.table = TRUE) +
-  scale_y_continuous(limits = c(0., 1), breaks = c(0, 0.25, 0.50, 0.75, 1),
+  facet_wrap(Location ~ species, 
+             labeller = labeller(Location=as_labeller(facet_labeller_top1))) +
+  scale_y_continuous(limits = c(0., 1.01), breaks = c(0, 0.25, 0.50, 0.75, 1),
                      labels = scales::percent_format(scale = 100, 
                                                      accuracy = 1,
-                                                     suffix = "")) +
+                                                     suffix = "%")) +
   geom_jitter(data = biomass %>% 
                 mutate(species = "Biomass reduction") %>% 
                 dplyr::select(- Year) %>% 
                 filter(crop == "soybean" & species %in% "Biomass reduction") %>% 
                 rename(response = biomred) %>% 
                 mutate(Herbicide = fct_recode(Herbicide,
-                                "metribuzin + chlorimuron-ethyl " = 
+                                "metribuzin +<br> chlorimuron-ethyl " = 
                                   "Canopy DF",
-                                "flumioxazin + pyroxasulfone" = 
+                                "flumioxazin +<br> pyroxasulfone" = 
                                   "Fierce",
-                                "dimethenamid-P + saflufenacil" = 
+                                "dimethenamid-P +<br> saflufenacil" = 
                                   "Verdict")), 
-              alpha = 0.1)  + 
+              alpha = 0.1, position = position_jitter(seed = 42))  + 
   geom_jitter(data = dat %>% 
                 filter(crop == "soybean" & species %in% c("grass", "common ragweed", 
                                                           "giant ragweed")) %>% 
                 dplyr::select(- Year) %>% 
                 rename(response = control) %>% 
                 mutate(Herbicide = fct_recode(Herbicide,
-                                "metribuzin + chlorimuron-ethyl " = 
+                                "metribuzin +<br> chlorimuron-ethyl " = 
                                   "Canopy DF",
-                                "flumioxazin + pyroxasulfone" = 
+                                "flumioxazin +<br> pyroxasulfone" = 
                                   "Fierce",
-                                "dimethenamid-P + saflufenacil" = 
+                                "dimethenamid-P +<br> saflufenacil" = 
                                   "Verdict")), 
-              alpha = 0.1)  + 
-  theme_test() +
-  labs(y = "%",
-       x = "") +
-#       title = "Figure 2. Efficacy (%) of preemergence herbicides in soybean at Arlington and Janesville, WI",
-#       subtitle = "Weed biomass reduction (%) and control (%) of common ragweed, giant ragweed and grass are pooled over carrier volume rates"
-
+              alpha = 0.1, position = position_jitter(seed = 42))  + 
+  theme_test(base_family = "lato") +
+  labs(title = NULL, 
+       subtitle = NULL,
+       y = NULL,
+       x = NULL) +
   coord_flip() +
   scale_color_brewer(palette = "Dark2") +
   theme(legend.position = "none",
         plot.title = element_markdown(size = 12, hjust = 0.99),
         plot.subtitle = element_markdown(size = 8, hjust = 1),
-        text  = element_text(family = "Arial", color = "#282728"),
+        text  = element_text(color = "#282728"),
         axis.text.y = element_markdown(),
-        axis.text.x = element_markdown(),
+        axis.text.x = element_markdown(angle = 20),
         strip.background = element_blank(),
     strip.text = element_textbox_highlight(
-      family = "Arial", size = 12, face = "bold",
-      fill = "white", box.color = "chartreuse4", color = "chartreuse4",
+      size = 12, face = "bold",
+      fill = "white", box.color = "white", color = "#282728",
       halign = .5, linetype = 1, r = unit(5, "pt"), width = unit(1, "npc"),
       padding = margin(5, 0, 3, 0), margin = margin(0, 1, 3, 1),
       hi.labels = c("Biomass reduction", "grass", "common ragweed", "giant ragweed"),
-      hi.fill = "chartreuse4", 
+      hi.fill = "#d7c49e", 
       hi.box.col = "black", hi.col = "#282728"
     ))
-  ggsave("soybean.pdf", width = 7, device = cairo_pdf,
-       height = 5, dpi = 600) 
+
+ggsave("Figure 1.pdf", width = 7,
+       height = 5, dpi = 300) 
 ```
 
 
@@ -413,10 +433,10 @@ all_data %>%
                                levels = "common ragweed", "giant ragweed", "grass",
                                "Biomass reduction")) %>% 
   mutate(Herbicide = fct_recode(Herbicide,
-                                "bicyclopyrone + mesotrione + *S*-metolachlor" = 
+                                "bicyclopyrone +<br> mesotrione + *S*-metolachlor" = 
                                   "Acuron Flexi",
-                                "fluthiacet-methyl + pyroxasulfone" = "Anthem Maxx",
-                                "acetochlor + clopyralid + mesotrione" = "Resicore"))  %>% 
+                                "fluthiacet-methyl +<br> pyroxasulfone" = "Anthem Maxx",
+                                "acetochlor +<br> clopyralid + mesotrione" = "Resicore"))  %>% 
   filter(crop == "corn") -> all_data2
 ```
 
@@ -433,17 +453,20 @@ all_data2 %>%
 ### Figure
 
 ```{r}
-ann_text1 <- data.frame(Herbicide = "bicyclopyrone + mesotrione + *S*-metolachlor", 
+ann_text1 <- data.frame(Herbicide = "bicyclopyrone +<br> mesotrione + *S*-metolachlor", 
                         response = 0.5, lab = "Text",
-                       Location = factor("Janesville", levels = c("Arlington", "Janesville")),
-                       species = factor("grass", levels = c("common ragweed", 
-                                                            "Biomass reduction",
-                                                            "giant ragweed", 
-                                                            "grass")))
-ann_text2 <- data.frame(x = "fluthiacet-methyl + pyroxasulfone", 
-                        xend = "fluthiacet-methyl + pyroxasulfone",
+                       Location = factor("Janesville", 
+                                         levels = c("Arlington", "Janesville")),
+                       species = factor("grass", 
+                                        levels = c("common ragweed",
+                                                   "Biomass reduction",
+                                                   "giant ragweed",
+                                                   "grass")))
+ann_text2 <- data.frame(x = "fluthiacet-methyl +<br> pyroxasulfone", 
+                        xend = "fluthiacet-methyl +<br> pyroxasulfone",
                        y=0.4, yend=0.6, 
-                       Location = factor("Janesville", levels = c("Arlington", "Janesville")),
+                       Location = factor("Janesville", 
+                                         levels = c("Arlington", "Janesville")),
                        species = factor("grass", levels = c("common ragweed", 
                                                             "Biomass reduction",
                                                             "giant ragweed", 
@@ -452,17 +475,38 @@ ann_text2 <- data.frame(x = "fluthiacet-methyl + pyroxasulfone",
 
 
 ```{r}
+facet_labeller_top2 <- function(variable, value) {
+  c(
+    "", 
+    "<b style='color:#9b0000; font-size:14pt;'>Arlington</b> <img src='https://img.icons8.com/color/48/000000/corn.png' width='12'/>",
+    "",
+    "", 
+    "<b style='color:#0479a8; font-size:14pt;'>Janesville</b> <img src='https://img.icons8.com/color/48/000000/corn.png'  width='12'/>",
+    ""
+  )
+}
+```
+
+
+```{r}
 fig_1 <- all_data2 %>% 
-  ggplot(aes(x = fct_reorder(Herbicide, response), y = response, 
+  mutate(response = case_when(Location == "Janesville" & 
+                                species == "grass" & 
+                                 crop == "corn" ~ NA_real_,
+                              TRUE  ~ response)) %>% 
+  drop_na() %>% 
+  ggplot(aes(x = fct_reorder(Herbicide, response), 
+             y = response, 
              color = Herbicide)) +
   geom_point() +
   geom_linerange(aes(ymin = lower.CL, ymax = upper.CL)) +
   geom_text(aes(label = letters), nudge_y = 0.001, nudge_x = 0.3) +
-  facet_wrap(Location ~ species) +
-  scale_y_continuous(limits = c(0., 1), breaks = c(0, 0.25, 0.50, 0.75, 1),
+  facet_wrap(Location ~ species, 
+             labeller = labeller(Location=as_labeller(facet_labeller_top2))) +
+  scale_y_continuous(limits = c(0., 1.01), breaks = c(0, 0.25, 0.50, 0.75, 1),
                      labels = scales::percent_format(scale = 100, 
                                                      accuracy = 1,
-                                                     suffix = "")) +
+                                                     suffix = "%")) +
   geom_jitter(data = biomass %>% 
                 mutate(species = "Biomass reduction") %>% 
                 mutate(id = row_number()) %>% 
@@ -470,58 +514,59 @@ fig_1 <- all_data2 %>%
                 filter(crop == "corn" & species %in% "Biomass reduction") %>% 
                 rename(response = biomred) %>% 
                 mutate(Herbicide = fct_recode(Herbicide,
-                                "bicyclopyrone + mesotrione + *S*-metolachlor" = "Acuron Flexi",
-                                "fluthiacet-methyl + pyroxasulfone" = "Anthem Maxx",
-                                "acetochlor + clopyralid + mesotrione" = "Resicore")), 
-              alpha = 0.15)  + 
+                                "bicyclopyrone +<br> mesotrione + *S*-metolachlor" = 
+                                  "Acuron Flexi",
+                                "fluthiacet-methyl +<br> pyroxasulfone" = "Anthem Maxx",
+                                "acetochlor +<br> clopyralid + mesotrione" = "Resicore")), 
+              alpha = 0.1, position = position_jitter(seed = 42))  + 
   geom_jitter(data = dat %>% 
                 filter(crop == "corn" & species %in% c("grass", "common ragweed", 
                                                           "giant ragweed")) %>% 
                 dplyr::select(- Year) %>% 
-                  mutate(response = case_when(Location == "Janesville" & 
+                mutate(response = case_when(Location == "Janesville" & 
                                 species == "grass" & 
                                  crop == "corn" ~ NA_real_,
                               TRUE  ~ control)) %>% 
-                  mutate(Herbicide = fct_recode(Herbicide,
-                                "bicyclopyrone + mesotrione + *S*-metolachlor" = 
+                mutate(Herbicide = fct_recode(Herbicide,
+                                "bicyclopyrone +<br> mesotrione + *S*-metolachlor" = 
                                   "Acuron Flexi",
-                                "fluthiacet-methyl + pyroxasulfone" = "Anthem Maxx",
-                                "acetochlor + clopyralid + mesotrione" = "Resicore")), 
-              alpha = 0.15)  + 
-  geom_text(data = ann_text1, 
+                                "fluthiacet-methyl +<br> pyroxasulfone" = "Anthem Maxx",
+                                "acetochlor +<br> clopyralid + mesotrione" = "Resicore")), 
+              alpha = 0.1, position = position_jitter(seed = 42))  + 
+  geom_text(data = ann_text1, size = 3,
             label = "Carrier volume\n × \n PRE herbicide\n interaction",
             color = "#282728") +
-  geom_segment(data = ann_text2,
-               aes(x=x,y=y,yend=yend,xend=xend),
-               arrow = arrow(length = unit(0.1,"cm")),
-               inherit.aes=FALSE)+
-  theme_test() +
-  labs(y = "%",
-       x = "",
-       title = "Figure 1. Efficacy (%) of preemergence herbicides in corn at Arlington and Janesville, WI",
-       subtitle = "Weed biomass reduction (%) and control (%) of common ragweed, giant ragweed and grass are pooled over carrier volume rates") +
+#  geom_segment(data = ann_text2,
+#               aes(x=x, y=y, yend=yend, xend=xend),
+#               arrow = arrow(length = unit(0.1,"cm")),
+#               inherit.aes=FALSE)+
+  theme_test(base_family = "lato") +
+    labs(title = NULL, 
+       subtitle = NULL,
+       y = NULL,
+       x = NULL) +
   coord_flip() +
   scale_color_brewer(palette = "Dark2") +
   theme(legend.position = "none",
-#        plot.title = element_markdown(size = 12, hjust = 0.99),
-#        plot.subtitle = element_markdown(size = 8, hjust = 1),
         plot.title = element_blank(),
         plot.subtitle = element_blank(),
-        text  = element_text(family = "Arial", color = "#282728"),
+        text  = element_text(color = "#282728"),
         axis.text.y = element_markdown(),
-        axis.text.x = element_markdown(),
+        axis.text.x = element_markdown(angle = 20),
         strip.background = element_blank(),
     strip.text = element_textbox_highlight(
-      family = "Arial", size = 12, face = "bold",
-      fill = "white", box.color = "chartreuse4", color = "chartreuse4",
+      size = 12, face = "bold",
+      fill = "white", box.color = "white", color = "#282728",
       halign = .5, linetype = 1, r = unit(5, "pt"), width = unit(1, "npc"),
       padding = margin(5, 0, 3, 0), margin = margin(0, 1, 3, 1),
       hi.labels = c("Biomass reduction", "grass", "common ragweed", "giant ragweed"),
-      hi.fill = "chartreuse4", 
+      hi.fill = "#fbec5d", 
       hi.box.col = "black", hi.col = "#282728"
-    )) +
-  ggsave("corn.png", width = 8, #device = cairo_pdf,
-       height = 5, dpi = 600) 
+    )) 
+
+
+ggsave("corn.png", width = 7, #device = cairo_pdf,
+       height = 5, dpi = 300) 
 ```
 
 
@@ -532,7 +577,7 @@ fig_1 <- all_data2 %>%
 
 
 
-## Interaction
+## Corn Interaction
 
 
 ```{r}
@@ -571,39 +616,44 @@ fig_2 <- grass_cn_j %>%
                                 "bicyclopyrone + mesotrione + *S*-metolachlor" = "Acuron Flexi",
                                 "fluthiacet-methyl + pyroxasulfone" = "Anthem Maxx",
                                 "acetochlor + clopyralid + mesotrione" = "Resicore")), 
-              alpha = 0.15)  + 
-  geom_point(size=2) +
+              alpha = 0.1, size=1.3, position = position_jitter(seed = 42))  + 
+  geom_point(size=1.3) +
   geom_linerange(aes(ymin = lower.CL, ymax = upper.CL),
                  size = 1) +
   facet_wrap(~ Herbicide, ncol = 1) +
   scale_color_brewer(palette = "Dark2") +
-  labs(y = "Grass control (%)",
-#       title = "Arlington Carrier volume × PRE herbicide",
+  labs(y = NULL,
+       subtitle = NULL,
+       title = "<b style='color:#0479a8; font-size:10pt;'>Janesville</b> <img src='https://img.icons8.com/color/48/000000/corn.png' width='8'/>- **% grass control**<br><br>Carrier volume × PRE herbicide",
        x = expression(paste("Carrier volume (gallons acre"^"-1",")"))) +
-  geom_text(aes(label = .group), nudge_y = 0.006, nudge_x = 0) +
-  scale_y_continuous(limits = c(0.94, 1), breaks = c(0.94, 0.96, 0.98, 1),
+  geom_text(aes(label = .group), nudge_y = 0.008, nudge_x = 0, size = 3) +
+  scale_y_continuous(limits = c(0.94, 1), 
+                     breaks = c(0.94, 0.96, 0.98, 1),
                      labels = scales::percent_format(scale = 100, 
                                                      accuracy = 1,
-                                                     suffix = "")) +
-  theme_test() +
+                                                     suffix = "%")) +
+  theme_test(base_family = "lato") +
   theme(legend.position = "none",
-       text  = element_text(family = "Arial", color = "#282728"),
-       plot.subtitle = element_markdown(size = 7, margin = margin(-2, 2, -8, 2)),
-        axis.text.y = element_markdown(),
+        text  = element_text(color = "#282728"),
+        plot.title.position = "plot",
+        plot.title = element_markdown(hjust = 0.5, size = 9),
+        axis.text = element_markdown(size = 8),
+        axis.title = element_markdown(size = 9),
         strip.background = element_blank(),
-      strip.text = element_textbox_highlight(
-      family = "Arial", size = 8, face = "bold",
-      fill = "white", box.color = "chartreuse4", color = "chartreuse4",
+        strip.text = element_textbox_highlight(
+        size = 7, face = "bold",
+      fill = "white", box.color = "#fbec5d", color = "#0479a8",
       halign = .5, linetype = 1, r = unit(5, "pt"), width = unit(1, "npc"),
       padding = margin(2, 2, 2, 2), margin = margin(6, 1, 4, 1),
       hi.labels = c("acetochlor + clopyralid + mesotrione", 
                     "bicyclopyrone + mesotrione + *S*-metolachlor",
                     "fluthiacet-methyl + pyroxasulfone"),
-      hi.fill = "chartreuse4", 
-      hi.box.col = "black", hi.col = "white"
-    )) +
-  ggsave("grass_weeds.png", width = 3, #device = cairo_pdf,
-       height = 9, dpi = 600) -> b
+      hi.fill = "#fbec5d", 
+      hi.box.col = "black", hi.col = "#282728"
+    )) 
+
+#ggsave("grass_weeds.png", width = 3, #device = cairo_pdf,
+#       height = 9, dpi = 300) -> b
 ```
 
        
@@ -613,21 +663,12 @@ fig_2 <- grass_cn_j %>%
 library(patchwork)
 ```
 
-```{r}
-fig_3 <- wrap_elements(grid::textGrob('Text on left side')) / fig_2 +
-  plot_layout(heights = c(1, 100))
-```
-
 
 ```{r warning=FALSE}
-combined <- fig_1 + fig_2 + 
-  plot_layout(widths = c(3, 1))  #+
-#   plot_annotation(title = "Figure 1. Efficacy (%) of preemergence herbicides in corn at Arlington and Janesville, WI",
-#       subtitle = "Weed biomass reduction (%) and control (%) of common ragweed, giant ragweed and grass are pooled over carrier volume rates, except to grass control in \nArlington",
-#       theme = theme(plot.subtitle = element_text(size = 10)))
+combined <- fig_1 + wrap_elements(full = fig_2) + 
+  plot_layout(widths = c(2.9, 1.1)) 
 
-
-ggsave("corn_2.pdf", device = cairo_pdf,
-       width = 10, height = 5, dpi = 600, combined)
+ggsave("Figure 2.pdf", #device = cairo_pdf,
+       width = 9, height = 5, dpi = 300, combined)
 ```
 
